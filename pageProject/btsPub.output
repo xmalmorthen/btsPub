@@ -1,0 +1,6 @@
+Traceback (most recent call last):
+  File "E:/Proyectos/python/btsPub/pageProject/btsPub.py", line 199, in <module>
+    vp_start_gui()
+  File "E:/Proyectos/python/btsPub/pageProject/btsPub.py", line 28, in vp_start_gui
+    btsPub_support.set_Tk_var()
+AttributeError: module 'btsPub_support' has no attribute 'set_Tk_var'
