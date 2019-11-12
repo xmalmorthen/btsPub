@@ -1,173 +1,234 @@
-import os
 import tkinter as tk
 import tkinter.ttk as ttk
+from tkinter import messagebox
 from PIL import ImageTk, Image
-from libs import initWin
+import assets.constants as constant
 from assets.styles import general as general_style
-import actions.dashboard as dashboard_action
+from models import dashboardConfig
 
-def vp_start_gui():
-    global val, w, root
-    root = tk.Tk()
-    #btsPubMain.set_Tk_var()
-    top = dashboard (root)
-    initWin.init(root, top)
-    root.mainloop()
+class dashboard:    
 
-class dashboard:
+    def __init__(self, top, idUsr = None):
+        self.top = top
+        self.idUsr = idUsr
+        self.dashboardConfig = dashboardConfig.dashboardConfig()
 
-    app_carpeta = os.getcwd()
-    img_carpeta = app_carpeta + os.sep + "src" + os.sep + "assets" + os.sep + "images"
-    
-    def __init__(self, top=None):        
-                        
-        top.resizable(0, 0)
-        top.title("Tablero principal")
-        top.configure(background=general_style.bgcolor)        
-        top.state('zoomed')
+    def __del__(self):
+        self.dashboardConfig.saveConfiguration(idUsr = self.idUsr)
 
-        self.menubar = tk.Menu(
-            top,
-            font = general_style.f10,
-            bg = general_style.bgcolor,
-            fg = general_style.fgcolor
+    def init(self):
+
+        if not self.idUsr:
+            messagebox.showerror(message="Acceso denegado", title="Tablero principal")
+            return None
+
+        for widget in self.top.winfo_children():
+            if isinstance(widget, tk.Menu):
+                self.menubar = widget
+                break
+                
+        self.menubar.entryconfig("Tablero", state="normal")
+        self.menubar.entryconfig("Campaña", state="normal")
+
+        #frameheader
+        fHeader = tk.Frame(self.top)
+        fHeader.configure(relief='flat',borderwidth="2",background= general_style.bgcolor)
+        fHeader.pack(fill = 'both',padx=5, pady=5)
+
+        #frame configuraciones
+        fConfig = tk.Frame(fHeader)
+        fConfig.configure(relief='flat',borderwidth="2",background= general_style.bgcolor)
+        fConfig.pack(side = 'left', fill = 'x')
+
+        #framePaís
+        f = tk.Frame(fConfig)
+        f.configure(relief='flat',background= general_style.bgcolor)
+        f.pack(side = 'left',padx=5, pady=5)
+
+        #lblPaís
+        lbl = tk.Label(f)
+        lbl.configure(
+            background= general_style.bgcolor,            
+            font= general_style.f20,
+            anchor='w',
+            text="País"
         )
-        top.configure(menu = self.menubar)
-
-        self.menubar.add_command(
-            background=general_style.bgcolor,
-            command= dashboard_action.mnu_tablero,
-            font=general_style.f10,
-            label="Tablero",
-            state="disabled"
+        lbl.pack()
+        #/lblPaís
+        #cmbPaís
+        self.TCmbPais = ttk.Combobox(f, state="readonly")
+        self.TCmbPais.pack(side='bottom')
+        self.TCmbPais.bind("<<ComboboxSelected>>", self.TCmbPais_change)
+        self.TCmbPais.configure(
+            cursor ="fleur",
+            font = general_style.f20,
+            values = self.dashboardConfig.paisList
         )
-        self.menubar.add_command(
-            background=general_style.bgcolor,
-            command= dashboard_action.mnu_campania,
-            font=general_style.f10,                
-            label="Campaña",
-            state="disabled"
-        )
-        self.menubar.add_command(
-            background=general_style.bgcolor,
-            command= dashboard_action.mnu_salir,
-            font=general_style.f10,                
-            label="Salir"
-        )
-
-        # self.fTablero = tk.Frame(top)
-        # self.fTablero.place(
-        #     relx=0.017, 
-        #     rely=0.017, 
-        #     relheight=0.967,
-        #     relwidth=0.975
-        # )
-        # self.fTablero.configure(
-        #     relief='groove',
-        #     borderwidth="2",
-        #     background="#d9d9d9",
-        #     highlightbackground="#d9d9d9",
-        #     highlightcolor="black"
-        # )        
-        # self.fTablero.place_forget()
-
-        self.fSesion = tk.Frame(top)
-
-        self.fSesion.configure(
-            relief='groove',
-            borderwidth="2",
+        self.TCmbPais.current(0)
+        #/cmbPaís
+        #/framePaís
+        
+        #frameCarrier
+        f = tk.Frame(fConfig)
+        f.configure(relief='flat',background= general_style.bgcolor)
+        f.pack(side = 'left', padx=5, pady=5)
+        #lblCarrier
+        lbl = tk.Label(f)
+        lbl.configure(
             background= general_style.bgcolor,
-            takefocus="1",
-            width="635", 
-            height="265"
+            font= general_style.f20,            
+            text="Carrier"
         )
-        self.fSesion.pack(expand=True)
-        #self.fSesion.pack_forget() #ocultar frame
+        lbl.pack()
+        #/lblCarrier
+        #cmbCarrier
         
-        self.lblUsr = tk.Label(self.fSesion)
-        self.lblUsr.configure(
-            background= general_style.bgcolor,            
-            font= general_style.f20,            
-            text="Usuario"
+        self.TCmbCarrier = ttk.Combobox(f,state="readonly")
+        self.TCmbCarrier.pack(side='bottom')
+        self.TCmbCarrier.bind("<<ComboboxSelected>>", self.TCmbCarrier_change)
+        self.TCmbCarrier.configure(
+            background= general_style.bgcolor,
+            cursor ="fleur",
+            font = general_style.f20,
+            values = self.dashboardConfig.carrierList
         )
-        self.lblUsr.place(relx=0.02, rely=0.34, height=43, width=105)
+        #/cmbCarrier
+        #/frameCarrier
 
-        self.lblContrasenia = tk.Label(self.fSesion)
-        self.lblContrasenia.configure(
-            background= general_style.bgcolor,            
+        #framePotencia
+        f = tk.Frame(fConfig)
+        f.configure(relief='flat',background= general_style.bgcolor)
+        f.pack(side = 'left', padx=5, pady=5)
+        #lblPotencia
+        lbl = tk.Label(f)
+        lbl.configure(
+            background= general_style.bgcolor,
             font= general_style.f20,            
-            text="Contraseña"
+            text="Potencia"
+        )
+        lbl.pack()
+        #/lblPotencia
+        #sclPotencia
+        self.SclPotencia = tk.Scale(f, from_=1.0, to=20.0)
+        self.SclPotencia.pack(side = 'bottom' )
+        self.SclPotencia.configure(
+            orient="horizontal",
+            sliderrelief="ridge",            
+            background= 'white',
+            font= general_style.f10,
+            length="332",
+            sliderlength = 50
+        )
+        self.SclPotencia.set(10)
+        #/sclPotencia
+        #/framePotencia
+        #/frame configuraciones
+
+        #frameEstatus
+        fEstatus = tk.Frame(fHeader)
+        fEstatus.configure(relief='flat',borderwidth="2",background= general_style.bgcolor)
+        fEstatus.pack(side = 'right', padx=5, pady=5, fill = 'both')
+        
+        #frameEstatusIcon
+        f = tk.Frame(fEstatus)
+        f.configure(relief='flat',borderwidth="2",background= general_style.bgcolor)
+        f.pack(side = 'left', padx=5)
+
+        lbl = tk.Label(f)
+        lbl.configure(
+            background= general_style.bgcolor,            
+            font= general_style.f10,
+            text="Estatus"
+        )
+        lbl.pack()
+        
+        img = ImageTk.PhotoImage(Image.open( constant.IMAGESDIR + "bulbOff64x64.png"))
+        self.lblEncendidoApagadoIcon = tk.Label(f,image=img)
+        self.lblEncendidoApagadoIcon.image = img
+        self.lblEncendidoApagadoIcon.configure(
+            background= general_style.bgcolor,            
+            font= general_style.f20            
         )        
-        self.lblContrasenia.place(relx=0.011, rely=0.642, height=43, width=165)
-
-        self.eUsuario = tk.Entry(self.fSesion)
-        self.vUsuario = tk.StringVar()
-        self.eUsuario.configure(
-            background="white",
-            font= general_style.f20,
-            relief="groove",
-            textvariable= self.vUsuario,
-        )
-        self.eUsuario.place(relx=0.027, rely=0.491,height=35, relwidth=0.51)
-        self.eUsuario.focus()
-
-        self.eContrasenia = tk.Entry(self.fSesion)
-        self.vContrasenia = tk.StringVar()
-        self.eContrasenia.configure(
-            background="white",
-            font= general_style.f20,
-            relief="groove",
-            show="*",
-            textvariable= self.vContrasenia,
-        )
-        self.eContrasenia.place(relx=0.027, rely=0.796, height=35, relwidth=0.51)
-
-        img_loginImage = ImageTk.PhotoImage(Image.open( self.img_carpeta + os.sep + "loginImage64x64.png"))
-        self.lblImageSesion = tk.Label(self.fSesion, image=img_loginImage)
-        self.lblImageSesion.image = img_loginImage
-        self.lblImageSesion.configure(background= general_style.bgcolor)
-        self.lblImageSesion.place(relx=0.031, rely=0.095, height=64, width=64)
-
-        self.lblTitle = tk.Label(self.fSesion)        
-        self.lblTitle.configure(
-            background=general_style.bgcolor,
-            font=general_style.TitleLg,
-            justify='left',
-            text='''Iniciar sesión''',
-        )
-        self.lblTitle.place(relx=0.137, rely=0.038, height=73, width=405)
+        self.lblEncendidoApagadoIcon.pack()
         
-        img_accept = ImageTk.PhotoImage(Image.open( self.img_carpeta + os.sep + "accept64x64.png"))
-        self.btnEntrar = tk.Button(self.fSesion, image=img_accept)
-        self.btnEntrar.configure(            
-            relief="groove",            
+        self.lblEncendidoApagadoText = tk.Label(f)
+        self.lblEncendidoApagadoText.image = img
+        self.lblEncendidoApagadoText.configure(
+            background= general_style.bgcolor,
+            font= general_style.f10,
+            text="Apagado"
+        )        
+        self.lblEncendidoApagadoText.pack()
+        #/frameEstatusIcon
+
+        #frameBtnEncenderApagar
+        f = tk.Frame(fEstatus)
+        f.configure(relief='flat',borderwidth="2",background= general_style.bgcolor)
+        f.pack(side = 'right', fill='both' , padx=5)
+
+        img = ImageTk.PhotoImage(Image.open( constant.IMAGESDIR + "bulbOn64x64.png"))
+        self.btnEncenderApagar = tk.Button(f, image=img)
+        self.btnEncenderApagar.configure(            
+            relief="groove",
             background=general_style.bgcolor,
             font=general_style.f10,
             compound='top',
-            text="Entrar",
-            command=lambda: dashboard_action.btn_session_accept(usr = self.vUsuario.get(), pwd = self.vContrasenia.get()),
+            text="Encender",
+            cursor= 'hand2',
+            command= lambda: self.dashboardConfig.encenderApagar_click(parent = self)
         )
-        self.btnEntrar.image = img_accept
-        self.btnEntrar.place(relx=0.551, rely=0.491, height=118, width=129)
+        self.btnEncenderApagar.image = img
+        self.btnEncenderApagar.pack(fill='both', expand= True)
+        #/#frameBtnEncenderApagar
+        #/frameEstatus
 
-        img_cancel = ImageTk.PhotoImage(Image.open( self.img_carpeta + os.sep + "cancel64x64.png"))
-        self.btnCancelar = tk.Button(self.fSesion, image=img_cancel)
-        self.btnCancelar.configure(            
-            relief="groove",            
-            background=general_style.bgcolor,
-            font=general_style.f10,
-            compound='top',
-            text="Cancelar",
-            command= dashboard_action.btn_session_cancel,
+        #frameSaveConfig
+        f = tk.Frame(self.top)
+        f.configure(relief='flat',background= general_style.bgcolor)
+        f.pack(side= 'top', fill = 'x',padx=10, pady=5)
+
+        #chkAutoCnn        
+        self.chkBtnAutoCnn = tk.Checkbutton(f)
+        self.chkBtnAutoCnn.pack(side='left')
+        self.chkBtnAutoCnnVar = tk.IntVar()
+        self.chkBtnAutoCnn.configure(
+           background= general_style.bgcolor,
+           justify='left',
+           font= general_style.f10,
+           text="Autoconectar al iniciar",
+           variable = self.chkBtnAutoCnnVar,
+           command = self.chkBtnAutoCnn_Click
         )
-        self.btnCancelar.image = img_cancel
-        self.btnCancelar.place(relx=0.772, rely=0.491, height=118, width=129)
+        #/chkAutoCnn
 
+        #chkConfig
+        self.chkBtnConfig = tk.Checkbutton(f)
+        self.chkBtnConfig.pack(side='left',padx=15)
+        self.chkBtnConfigVar = tk.IntVar()
+        self.chkBtnConfig.configure(
+           background= general_style.bgcolor,
+           justify='left',
+           font= general_style.f10,
+           text="Guardar configuración",
+           variable = self.chkBtnConfigVar,
+           command = self.chkBtnConfig_Click
+        )
+        #/chkConfig
+        #/frameSaveConfig
 
-if __name__ == '__main__':
-    vp_start_gui()
+        self.fTableroBitacora = tk.Frame(self.top)
+        self.fTableroBitacora.configure(relief='groove',borderwidth="2",background= '#cacaca',
+        )
+        self.fTableroBitacora.pack(expand = True, fill = 'both')
 
+    def TCmbPais_change(self, event):
+        self.dashboardConfig.paisValue = self.TCmbPais.get()
 
+    def TCmbCarrier_change(self, event):
+        self.dashboardConfig.carrierValue = self.TCmbCarrier.get()
 
+    def chkBtnAutoCnn_Click(self):
+        self.dashboardConfig.autoConnect = self.chkBtnAutoCnnVar.get()
 
-
+    def chkBtnConfig_Click(self):
+        self.dashboardConfig.saveConfig = self.chkBtnConfigVar.get()        
