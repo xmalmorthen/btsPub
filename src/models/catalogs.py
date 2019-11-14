@@ -58,14 +58,18 @@ class caConfigUsr(base):
     def __del__(self):
         super().__del__()
 
+    def get(self,idUser):
+        return super().get(catalog = 'caConfigUsr', where = "idUser = " + str(idUser)) 
+
     def put(self,idUser, idPais, idCarrier, potencia, autoConnect):
         returnResult = False
 
         try:
-            qry = "INSERT INTO caConfigUsr(idUser,idPais,idCarrier,potencia,autoConnect,fIns) VALUES(?,?,?,?,?,?)"
-            self.cur.executemany(qry,[(idUser, idPais, idCarrier, potencia, autoConnect, self.now.strftime("%Y/%m/%d, %H:%M:%S"))])
-            self.cnn.commit()
-            returnResult = True
+            if self.delete(idUser = idUser):
+                qry = "INSERT INTO caConfigUsr(idUser,idPais,idCarrier,potencia,autoConnect,fIns) VALUES(?,?,?,?,?,?)"
+                self.cur.executemany(qry,[(idUser, idPais, idCarrier, potencia, autoConnect, self.now.strftime("%Y/%m/%d, %H:%M:%S"))])
+                self.cnn.commit()
+                returnResult = True
         except Exception as ex:
             print (ex)
             returnResult = False
@@ -76,12 +80,31 @@ class caConfigUsr(base):
         returnResult = False
 
         try:
-            qry = "DELETE FROM caConfigUsr WHERE idUser == " + idUser
+            qry = "DELETE FROM caConfigUsr WHERE idUser = " + str(idUser)
             self.cur.execute(qry)
             self.cnn.commit()
             returnResult = True
-        except:
+        except Exception as ex:
+            print (ex)
             returnResult = False
 
         return returnResult
 
+class tblBitacora(base):
+    def __init__(self):
+        super().__init__()
+
+    def __del__(self):
+        super().__del__()
+
+    def get(self,filter = None):
+        returnResult = None
+
+        qry = "SELECT * FROM vwBitacora"
+        if filter != None:
+           qry += " where " + filter 
+
+        self.cur.execute(qry)
+        returnResult = self.cur.fetchall()
+        
+        return returnResult

@@ -82,6 +82,7 @@ class session:
             font=general_style.f10,
             compound='top',
             text="Entrar",
+            cursor= 'hand2',
             command=lambda: session_action.btn_session_accept(self),
         )
         self.btnEntrar.image = img_accept
@@ -95,6 +96,7 @@ class session:
             font=general_style.f10,
             compound='top',
             text="Cancelar",
+            cursor= 'hand2',
             command= session_action.btn_session_cancel,
         )
         self.btnCancelar.image = img_cancel
