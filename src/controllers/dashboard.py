@@ -2,10 +2,13 @@ import tkinter as tk
 import tkinter.ttk as ttk
 from tkinter import messagebox
 from PIL import ImageTk, Image
+import copy
+import textwrap
 import assets.constants as constant
 import assets.enums.messagesTypes as messagesTypesEnum
 from assets.styles import general as general_style
 from models import dashboardConfig, catalogs
+import assets.styles.grid as gridGeometry
 
 class dashboard:    
 
@@ -249,9 +252,17 @@ class dashboard:
         lbl.configure(background= general_style.bgcolor,font= general_style.f20, text = 'Bitácora')
         lbl.pack()
 
-        self.bodyBitacora = tk.Frame(self.fTableroBitacora)
-        self.bodyBitacora.configure(relief='flat',borderwidth="2",background= general_style.bgcolor)
-        self.bodyBitacora.pack(fill = 'both', expand=True)
+        img = ImageTk.PhotoImage(Image.open( constant.IMAGESDIR + "refresh48x48.png"))
+        btnRefresh = tk.Button(fTableroBitacoraHeader, image=img)
+        btnRefresh.configure(
+            relief="groove",
+            background=general_style.bgcolor,            
+            cursor= 'hand2',
+            command= self.populateGrid
+        )
+        btnRefresh.image = img
+        btnRefresh.pack(side = tk.RIGHT, padx = 5, pady = 5)
+
         #/FrameBitacora
 
         self.fStatusBar = tk.Frame(self.top)
@@ -324,6 +335,16 @@ class dashboard:
         return returnResponse
 
     def populateGrid(self):
+        
+        try:
+            self.bodyBitacora.pack_forget()
+        except:
+            pass
+        finally:
+            self.bodyBitacora = tk.Frame(self.fTableroBitacora)
+            self.bodyBitacora.configure(relief='flat',borderwidth="2",background= general_style.bgcolor)
+            self.bodyBitacora.pack(fill = 'both', expand=True)
+
         canvas = tk.Canvas(self.bodyBitacora, bg= general_style.bgcolor)
         canvas.pack(side = 'left', fill='both', expand = True)
         
@@ -339,33 +360,59 @@ class dashboard:
         grid.configure(relief='flat',borderwidth="0",background= general_style.bgcolor )
 
         response = catalogs.tblBitacora().get()
-        
-        items = []
-        for item in response:
-            arrayCol = []
-            for idx in range(0,len(item) -1):                
-                arrayCol.append(item[idx])
-            arrayCol.append('insert button')           
-            items.append(arrayCol)
 
-        items.insert(0,('Fecha','Hora','Registros','Mensajes','Campaña',''))
+        items = response.copy() if len(response) > 0 else []
+        items.insert(0,('Id','Fecha','Hora','Registros','Mensajes','Campaña'))
 
         odd = True
-        for item in items:
-            fra = tk.Frame(grid)
+        row, col = 0, 0
+        
+        canvas.update()            
+        # width = canvas.winfo_width() // len(items[0])
 
-            backColor = '#eaeaea' if odd else general_style.bgcolor
+        width = canvas.winfo_width()
+        colsWidth = []
+        for colWidth in gridGeometry.bitacora:
+            if colWidth != '*':
+                width = width - int(colWidth)
+            colsWidth.append(colWidth)
+
+        asterisk = colsWidth.count('*')
+        width = width // asterisk
+        if asterisk > 0:
+            pos = 0
+            for colasterisk in colsWidth:
+                if colasterisk == '*':
+                    colsWidth[pos] = str(width)
+                pos = pos + 1
+
+        for itemRow in items:
+            backColor = '#cacaca' if row == 0 else '#eaeaea' if odd else general_style.bgcolor
             odd = not odd
+            col = 0
+            for itemCol in itemRow:
+                itemCol = str(itemCol)
 
-            fra.configure(relief= tk.FLAT,borderwidth="0",background= backColor)
-            fra.pack(fill = 'x')
-            for col in item:
-                lbl = tk.Label(fra, justify= tk.LEFT, width= (canvas.winfo_width() % 6))
-                lbl.configure(relief= tk.FLAT, borderwidth= 0, background= backColor,font= general_style.f10, text = col)
-                lbl.pack(side='left', fill='x', expand= True)
-                lbl.bind("<ButtonPress-1>", lambda event: canvas.focus_set())
-        
-        
+                wrapper = textwrap.TextWrapper(width= int(colsWidth[col]) // 8)
+                textWrapped = wrapper.wrap(text=itemCol)
+                itemCol = "\n".join(textWrapped)
+                
+                fra = tk.Frame(grid,width=int(colsWidth[col]), height= 30 * len(textWrapped))
+                fra.bind("<ButtonPress-1>", lambda event: canvas.focus_set())
+                fra.pack_propagate(0)
+                fra.grid(row=row, column=col, sticky = tk.W + tk.E + tk.S + tk.N)
+                tk.Label(fra,background=backColor,font= general_style.f10,text= itemCol ).pack(fill= tk.BOTH, expand=1)
+                col = col + 1
+
+            row = row + 1
+
+        if row == 1:
+            fra = tk.Frame(grid,width=canvas.winfo_width(), height= 50)
+            fra.bind("<ButtonPress-1>", lambda event: canvas.focus_set())
+            fra.pack_propagate(0)
+            fra.grid(row=row, columnspan=col-1)
+            tk.Label(fra,background='#eaeaea',font= general_style.f20,text= str('No se encontraron registros')).pack(fill= tk.BOTH, expand=1)
+
         win = canvas.create_window((0,0), window=grid, anchor=tk.NW)
         grid.update_idletasks()
         bbox = canvas.bbox(tk.ALL)        
